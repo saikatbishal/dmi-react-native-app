@@ -1,31 +1,103 @@
-import { StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, TextInput, Button, StyleSheet, Alert,Text } from 'react-native';
+import axios from 'axios';
+import Products from './products';
+interface User {
+  id: number;
+  email: string;
+  username: string;
+  city:string
+}
+const LoginScreen = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authenticated, setAuthenticated] = useState(false);
+  const [showNotLoggedIn, setShowNotLoggedIn] = useState(false);
 
-import EditScreenInfo from '../../components/EditScreenInfo';
-import { Text, View } from '../../components/Themed';
+  const handleLogin = async () => {
+    console.log("HandleLogin")
+    try {
+      const response = await axios.get<User[]>('https://jsonplaceholder.typicode.com/users');
+      const users = response.data;
 
-export default function TabOneScreen() {
+      const authenticatedUser = users.find(
+        (user: User) => user.email === email && user.username === password
+      );
+      
+
+      if (authenticatedUser) {
+        setAuthenticated(true);
+        sessionStorage.setItem('authenticatedUser', 'true');
+        sessionStorage.setItem('username',password)
+      } else {
+        setShowNotLoggedIn(true)
+      }
+    } catch (error) {
+      console.log('Error:', error);
+      Alert.alert('Error', 'An error occurred');
+    }
+  };
+
+  const handleGoBack = () => {
+    setShowNotLoggedIn(false);
+    setEmail('');
+    setPassword('');
+  };
+
+  if (authenticated) {
+    return <h1>You Are Authenticated</h1>
+  }
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Tab One</Text>
-      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-      <EditScreenInfo path="app/(tabs)/index.tsx" />
+      {!showNotLoggedIn && (
+        <>
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            onChangeText={(text) => setEmail(text)}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            secureTextEntry
+            onChangeText={(text) => setPassword(text)}
+          />
+          <Button title="Login" onPress={handleLogin} />
+        </>
+      )}
+
+      {showNotLoggedIn && (
+        <View style={styles.errorText}>
+          <Text>Invalid email or password. Please try again.</Text>
+          <Button title="Go Back" onPress={handleGoBack} />
+        </View>
+      )}
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
   },
-  title: {
-    fontSize: 20,
+  input: {
+    width: '100%',
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginBottom: 12,
+    paddingHorizontal: 10,
+  },
+  errorText: {
+    marginBottom: 12,
+    color: 'red',
+    fontSize: 16,
     fontWeight: 'bold',
   },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
-  },
 });
+
+export default LoginScreen;
